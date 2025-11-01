@@ -1,0 +1,120 @@
+                  {getWeekTasks().map(({ date, tasks }, index) => {
+                    const isToday =
+                      formatDate(normalizeDate(date), "yyyy-MM-dd") === todayStr;
+                    const sorted = tasks
+                      .slice()
+                      .sort((a, b) => {
+                        const ao = a.order ?? Number.MAX_SAFE_INTEGER;
+                        const bo = b.order ?? Number.MAX_SAFE_INTEGER;
+                        if (ao !== bo) return ao - bo;
+                        return sortByTimeAsc(a, b);
+                      });
+                    const ymd = formatDate(date, "yyyy-MM-dd");
+                    const isWeekend = [0, 6].includes(date.getDay());
+                    const count = sorted.length;
+
+                    return (
+                      <Droppable key={index} droppableId={ymd}>
+                        {(provided) => (
+                          <div
+                            className={`space-y-2 p-2 rounded-lg shadow-sm border ${
+                              isToday
+                                ? "border-green-500 bg-gray-800/80"
+                                : isWeekend
+                                ? "border-gray-700 bg-gray-900/80"
+                                : "border-gray-700 bg-gray-900/60"
+                            } hover:border-green-600 transition-colors`}
+                          >
+                            {/* SADECE başlık tıklanınca gün seçilsin */}
+                            <div className="flex items-center justify-between px-1">
+                              <button
+                                type="button"
+                                className="text-sm font-semibold text-white cursor-pointer hover:text-green-400"
+                                onClick={() => props.setSelectedDate(date)}
+                              >
+                                {weekdayLabel(date)} {date.getDate()} {date.toLocaleString("en-US", { month: "short" })}
+                              </button>
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
+                                {count}
+                              </span>
+                            </div>
+
+                            <div className="space-y-1">
+                              {sorted.map((task, i) => {
+                                const virtualId = `${task.id}-${ymd}`;
+                                const completedForDay = isDoneOn(task, date);
+                                return (
+                                  <Draggable key={task.id} draggableId={task.id} index={i}>
+                                    {(dragProvided, dragSnapshot) => (
+                                      <div
+                                        ref={dragProvided.innerRef}
+                                        {...dragProvided.draggableProps}
+                                        {...dragProvided.dragHandleProps}
+                                        style={{
+                                          ...(dragProvided.draggableProps.style || {}),
+                                          ...(dragSnapshot.isDropAnimating ? { transitionDuration: "0.001s" } : {}),
+                                        }}
+                                        className={dragSnapshot.isDragging ? "ring-1 ring-green-500/60 rounded-md shadow-lg scale-[1.01] transition-all" : "transition-all"}
+                                      >
+                                        <TaskItem
+                                          task={{ ...task, id: virtualId, completed: completedForDay }}
+                                          projects={projects}
+                                          view="week"
+                                          getPriorityColor={getPriorityColor}
+                                          toggleTask={(id) => toggleTaskByDate(id, date)}
+                                          togglePin={togglePin}
+                                          deleteTask={deleteTask}
+                                          onAddSubTask={onAddSubTask}
+                                          onToggleSubTask={onToggleSubTask}
+                                          onDeleteSubTask={onDeleteSubTask}
+                                          onUpdateNotes={onUpdateNotes}
+                                          onUpdateTaskText={handleUpdateTaskText}
+                                          onCreateTemplate={onCreateTemplateFromTask}
+                                        />
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                );
+                              })}
+                              {provided.placeholder}
+                            </div>
+                          </div>
+                        )}
+                      </Droppable>
+                    );
+                  })}
+                </div>
+              </div>
+          )}
+
+          {/* MONTH */}
+          {currentView === "month" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between mb-4">
+                <Button onClick={() => setMonthOffset(monthOffset - 1)}>
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Prev
+                </Button>
+
+                <h2 className="text-lg font-semibold text-white">{monthTitle}</h2>
+
+                <Button onClick={() => setMonthOffset(monthOffset + 1)}>
+                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+
+              {/* Weekday headers */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {dayNames.map((day) => (
+                  <div key={day} className="text-center text-sm font-semibold text-gray-400 p-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {getMonthTasks().map((week, weekIndex) => (
+                <div key={weekIndex} className="grid grid-cols-7 gap-1">
+          {week.map((day, dayIndex) => {
+            const isToday =
+              formatDate(normalizeDate(day.date), "yyyy-MM-dd") === todayStr;
+            const ymd = formatDate(day.date, "yyyy-MM-dd");
+            const dateStr = ymd;

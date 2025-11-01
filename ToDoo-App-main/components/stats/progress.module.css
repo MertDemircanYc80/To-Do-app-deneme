@@ -1,0 +1,40 @@
+/* su efekti */
+.water {
+  position: absolute;
+  bottom: 0; left: 0; width: 100%;
+  background: linear-gradient(180deg, rgba(59,130,246,.55), rgba(59,130,246,.35));
+  overflow: hidden;
+}
+
+.ripple {
+  position: absolute;
+  left: -50%; top: -110%;
+  width: 200%; height: 200%;
+  border-radius: 40%;
+  background: rgba(255,255,255,.35);
+  animation: spin 4s linear infinite;
+}
+
+@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+/* --- floating dot (sağa-sola kayma) --- */
+.floatWrap {
+  position: absolute;
+  width: 4rem;     /* sm dairenin genişliğiyle uyumlu */
+  height: 4rem;
+  left: 0;
+}
+
+.floatX {
+  animation: floatX 12s ease-in-out infinite;
+}
+.floatX2 {
+  animation: floatX 16s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+@keyframes floatX {
+  0%   { left: 0 }
+  50%  { left: calc(100% - 4rem) }  /* konteyner içinde sağa kadar */
+  100% { left: 0 }
+}

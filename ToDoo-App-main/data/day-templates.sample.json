@@ -1,0 +1,31 @@
+[
+  {
+    "id": "tpl-mon-routine",
+    "name": "Monday Routine",
+    "when": { "weekdays": [1] },
+    "tasks": [
+      { "text": "Weekly planning", "priority": "high", "time": "09:00" },
+      { "text": "Inbox zero sweep", "priority": "medium" },
+      { "text": "Team sync", "priority": "medium", "time": "10:30" }
+    ]
+  },
+  {
+    "id": "tpl-sat-reset",
+    "name": "Saturday Reset",
+    "when": { "weekdays": [6] },
+    "tasks": [
+      { "text": "House cleanup", "priority": "low" },
+      { "text": "Grocery list + shopping", "priority": "low" },
+      { "text": "Plan next week", "priority": "medium" }
+    ]
+  },
+  {
+    "id": "tpl-one-off-example",
+    "name": "One-off Example",
+    "when": { "dates": ["2025-01-01"] },
+    "tasks": [
+      { "text": "New Year Reflection", "priority": "low" }
+    ]
+  }
+]
+
