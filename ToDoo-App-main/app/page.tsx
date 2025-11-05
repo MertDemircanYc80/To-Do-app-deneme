@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import clsx from "clsx";
 import { Button } from "@/components/ui/button";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -34,7 +35,8 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  X
+  Menu,
+  X,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import CalendarButton from "@/components/ui/CalendarButton";
@@ -51,6 +53,24 @@ const toYMD = (d: Date) =>
 const startMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 const addMonths = (d: Date, n: number) =>
   new Date(d.getFullYear(), d.getMonth() + n, d.getDate());
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(query).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia(query);
+    const listener = () => setMatches(media.matches);
+    listener();
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [query]);
+
+  return matches;
+}
 
 /* -------- anchored portal -------- */
 function AnchoredPortal({
@@ -260,7 +280,7 @@ export default function TodoApp() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [monthOffset, setMonthOffset] = useState(0);
   const [weekOffset, setWeekOffset] = useState(0);
-  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string>("");
 
   // sa?? panel open/close
@@ -280,6 +300,13 @@ export default function TodoApp() {
   const [pwMsg, setPwMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  useEffect(() => {
+    setSidebarOpen(isDesktop);
+    setRightOpen(isDesktop);
+  }, [isDesktop]);
 
   // --- VER?- Y+?KLEME ---
   useEffect(() => {
@@ -359,6 +386,8 @@ export default function TodoApp() {
     setTemplates([]);
     setDayTemplates([]);
     setCurrentView("today");
+    setSidebarOpen(isDesktop);
+    setRightOpen(isDesktop);
   };
 
   const getPriorityColor = (priority: Task["priority"]) => {
@@ -851,6 +880,9 @@ export default function TodoApp() {
     if (view === "today") {
       setSelectedDate(new Date());
     }
+    if (!isDesktop) {
+      setSidebarOpen(false);
+    }
   };
 
   const currentWeekDate = useMemo(() => {
@@ -927,17 +959,20 @@ export default function TodoApp() {
   const showStatsBar = false;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: darkPalette.background }}>
+    <div
+      className="min-h-screen pb-24 lg:pb-0"
+      style={{ backgroundColor: darkPalette.background }}
+    >
       <div className="flex">
           <Sidebar
             {...{
-            isExpanded: projectsExpanded,
-            onToggle: () => setProjectsExpanded(!projectsExpanded),
-            projects,
-            templates,
-            dayTemplates,
-            onCreateProject: createProject,
-              onSetView: setCurrentView,
+              isExpanded: sidebarOpen,
+              onToggle: () => setSidebarOpen((prev) => !prev),
+              projects,
+              templates,
+              dayTemplates,
+              onCreateProject: createProject,
+              onSetView: changeView,
               onSetCurrentProjectId: setCurrentProjectId,
               onSetCurrentDayTemplateId: setCurrentDayTemplateId,
               onUseTemplate: handleUseTemplate,
@@ -945,16 +980,27 @@ export default function TodoApp() {
               onCreateDayTemplate: handleCreateDayTemplate,
               onDeleteDayTemplate: handleDeleteDayTemplate,
               onUpdateDayTemplate: handleUpdateDayTemplate,
-            onDeleteTemplate: handleDeleteTemplate,
-            onDeleteProject: deleteProject,
-          }}
-        />
+              onDeleteTemplate: handleDeleteTemplate,
+              onDeleteProject: deleteProject,
+            }}
+          />
+
+        {!isDesktop && sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
         {/* Ana i+?erik: sa?? panel a+?-ksa ekstra padding */}
         <div
-          className={`flex-1 relative isolate transition-all duration-300 ${
-            projectsExpanded ? "ml-80" : "ml-0"
-          } ${rightOpen ? "pr-80" : "pr-4"}`}
+          className={clsx(
+            "flex-1 relative isolate transition-all duration-300",
+            "ml-0",
+            "pr-4",
+            isDesktop && sidebarOpen && "lg:ml-80",
+            isDesktop && rightOpen && "lg:pr-80"
+          )}
         >
           {/* Solid background to prevent faint banding under semi-transparent sections */}
           <div aria-hidden className="absolute inset-0 -z-10" style={{ backgroundColor: darkPalette.background }} />
@@ -986,21 +1032,36 @@ export default function TodoApp() {
           )}
 
           <header className="p-4 border-b border-gray-700">
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="text-2xl font-bold text-white">
-                {currentView === "today" && "Today's Tasks"}
-                {currentView === "week" && "This Week"}
-                {currentView === "month" && "Month View"}
-                {currentView === "project" &&
-                  projects.find((p) => p.id === currentProjectId)?.name}
-                {currentView === "day-template" &&
-                  dayTemplates.find((t) => t.id === currentDayTemplateId)?.name}
-                {currentView === "settings" && "Settings"}
-                {currentView === "tasks" && "All Tasks"}
-              </h1>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarOpen((prev) => !prev)}
+                  className="lg:hidden h-9 w-9 border border-gray-700/60 bg-gray-800 text-white hover:bg-gray-700"
+                  aria-label="Toggle menu"
+                >
+                  {sidebarOpen ? (
+                    <X className="w-5 h-5" />
+                  ) : (
+                    <Menu className="w-5 h-5" />
+                  )}
+                </Button>
+                <h1 className="text-2xl font-bold text-white">
+                  {currentView === "today" && "Today's Tasks"}
+                  {currentView === "week" && "This Week"}
+                  {currentView === "month" && "Month View"}
+                  {currentView === "project" &&
+                    projects.find((p) => p.id === currentProjectId)?.name}
+                  {currentView === "day-template" &&
+                    dayTemplates.find((t) => t.id === currentDayTemplateId)?.name}
+                  {currentView === "settings" && "Settings"}
+                  {currentView === "tasks" && "All Tasks"}
+                </h1>
+              </div>
 
-                {/* Tarih butonu */}
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <div className="relative">
                   <CalendarButton
                     value={toYMD(selectedDate)}
@@ -1079,14 +1140,16 @@ export default function TodoApp() {
         </div>
 
         {/* Sağ sabit panel (slide-in/out) */}
-        <RightPanel
-          open={rightOpen}
-          onClose={() => setRightOpen(false)}
-          onToggle={() => setRightOpen((s) => !s)}
-        />
+        {isDesktop && (
+          <RightPanel
+            open={rightOpen}
+            onClose={() => setRightOpen(false)}
+            onToggle={() => setRightOpen((s) => !s)}
+          />
+        )}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-30">
+      <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-30 lg:hidden">
         <div className="flex justify-center">
           <div className="flex bg-gray-700 rounded-full p-1 m-2">
             <Button
